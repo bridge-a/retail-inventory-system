@@ -1,0 +1,23 @@
+CREATE TABLE product_category (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(64) NOT NULL,
+    status TINYINT NOT NULL DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE product (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    category_id BIGINT NOT NULL,
+    name VARCHAR(128) NOT NULL,
+    code VARCHAR(64) NOT NULL UNIQUE,
+    unit VARCHAR(16) NOT NULL,
+    current_stock INT NOT NULL DEFAULT 0,
+    safe_stock INT NOT NULL DEFAULT 0,
+    status TINYINT NOT NULL DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_product_category FOREIGN KEY (category_id) REFERENCES product_category(id),
+    CONSTRAINT chk_current_stock CHECK (current_stock >= 0),
+    CONSTRAINT chk_safe_stock CHECK (safe_stock >= 0)
+);
