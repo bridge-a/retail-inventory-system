@@ -8,6 +8,7 @@ import com.example.inventory.exception.BusinessException;
 import com.example.inventory.mapper.ProductMapper;
 import com.example.inventory.mapper.StockRecordMapper;
 import com.example.inventory.service.StockService;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -25,6 +26,7 @@ public class StockServiceImpl implements StockService {
     }
 
     @Override
+    @Transactional
     public void stockIn(StockInRequest request) {
         validateStockInRequest(request);
 
@@ -48,6 +50,7 @@ public class StockServiceImpl implements StockService {
     }
 
     @Override
+    @Transactional
     public void stockOut(StockOutRequest request) {
         validateStockOutRequest(request);
 
