@@ -5,7 +5,11 @@ import com.example.inventory.dto.ProductUpdateRequest;
 import com.example.inventory.service.ProductService;
 
 public class ProductController {
-    private ProductService productService;
+    private final ProductService productService;
+
+    public ProductController(ProductService productService) {
+        this.productService = productService;
+    }
 
     public Long createProduct(ProductCreateRequest request) {
         return productService.createProduct(request);
