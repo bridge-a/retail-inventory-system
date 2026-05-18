@@ -18,7 +18,7 @@ public class ProductServiceImpl implements ProductService {
     public Long createProduct(ProductCreateRequest request) {
         validateCreateRequest(request);
 
-        String normalizedCode = request.getCode().trim();
+        String normalizedCode = normalizeCode(request.getCode());
         Product existing = productMapper.findByCode(normalizedCode);
         if (existing != null) {
             throw new BusinessException("Product code already exists.");
@@ -133,6 +133,10 @@ public class ProductServiceImpl implements ProductService {
 
     private int defaultSafeStock(Integer safeStock) {
         return safeStock == null ? 0 : safeStock;
+    }
+
+    private String normalizeCode(String code) {
+        return code.trim();
     }
 
     private boolean isBlank(String value) {
