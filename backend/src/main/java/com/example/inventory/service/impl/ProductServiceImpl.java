@@ -18,7 +18,8 @@ public class ProductServiceImpl implements ProductService {
     public Long createProduct(ProductCreateRequest request) {
         validateCreateRequest(request);
 
-        Product existing = productMapper.findByCode(request.getCode());
+        String normalizedCode = request.getCode().trim();
+        Product existing = productMapper.findByCode(normalizedCode);
         if (existing != null) {
             throw new BusinessException("Product code already exists.");
         }
@@ -26,7 +27,7 @@ public class ProductServiceImpl implements ProductService {
         Product product = new Product();
         product.setCategoryId(request.getCategoryId());
         product.setName(request.getName().trim());
-        product.setCode(request.getCode().trim());
+        product.setCode(normalizedCode);
         product.setUnit(request.getUnit().trim());
         product.setCurrentStock(0);
         product.setSafeStock(defaultSafeStock(request.getSafeStock()));
