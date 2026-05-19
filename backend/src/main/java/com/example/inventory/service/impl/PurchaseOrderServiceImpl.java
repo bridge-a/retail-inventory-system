@@ -119,7 +119,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             stockInRequest.setProductId(item.getProductId());
             stockInRequest.setQuantity(item.getQuantity());
             stockInRequest.setOperatorId(request.getOperatorId());
-            stockInRequest.setRemark(request.getRemark());
+            stockInRequest.setRemark(buildPurchaseStockInRemark(id, request.getRemark()));
             stockService.stockIn(stockInRequest);
         }
 
@@ -189,5 +189,13 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         if (request == null || request.getOperatorId() == null) {
             throw new BusinessException("Operator id is required.");
         }
+    }
+
+    private String buildPurchaseStockInRemark(Long orderId, String remark) {
+        String prefix = "Purchase order stock-in, orderId=" + orderId;
+        if (remark == null || remark.trim().isEmpty()) {
+            return prefix;
+        }
+        return prefix + ", " + remark.trim();
     }
 }
