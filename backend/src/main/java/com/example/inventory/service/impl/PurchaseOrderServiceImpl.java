@@ -1,7 +1,10 @@
 package com.example.inventory.service.impl;
 
+import com.example.inventory.dto.PurchaseApproveRequest;
+import com.example.inventory.dto.PurchaseCompleteRequest;
 import com.example.inventory.dto.PurchaseCreateRequest;
 import com.example.inventory.dto.PurchaseItemRequest;
+import com.example.inventory.dto.StockInRequest;
 import com.example.inventory.entity.PurchaseOrder;
 import com.example.inventory.entity.PurchaseOrderItem;
 import com.example.inventory.exception.BusinessException;
@@ -9,23 +12,33 @@ import com.example.inventory.mapper.ProductMapper;
 import com.example.inventory.mapper.PurchaseOrderItemMapper;
 import com.example.inventory.mapper.PurchaseOrderMapper;
 import com.example.inventory.service.PurchaseOrderService;
+import com.example.inventory.service.StockService;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private static final String STATUS_PENDING = "PENDING";
+    private static final String STATUS_APPROVED = "APPROVED";
+    private static final String STATUS_REJECTED = "REJECTED";
+    private static final String STATUS_COMPLETED = "COMPLETED";
 
     private final PurchaseOrderMapper purchaseOrderMapper;
     private final PurchaseOrderItemMapper purchaseOrderItemMapper;
     private final ProductMapper productMapper;
+    private final StockService stockService;
 
     public PurchaseOrderServiceImpl(
             PurchaseOrderMapper purchaseOrderMapper,
             PurchaseOrderItemMapper purchaseOrderItemMapper,
-            ProductMapper productMapper
+            ProductMapper productMapper,
+            StockService stockService
     ) {
         this.purchaseOrderMapper = purchaseOrderMapper;
         this.purchaseOrderItemMapper = purchaseOrderItemMapper;
         this.productMapper = productMapper;
+        this.stockService = stockService;
     }
 
     @Override
@@ -59,7 +72,72 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     }
 
     @Override
+    public void approvePurchaseOrder(Long id, PurchaseApproveRequest request) {
+        validateApproveRequest(request);
+
+        PurchaseOrder order = getExistingOrder(id);
+        ensureStatus(order, STATUS_PENDING);
+
+        order.setStatus(STATUS_APPROVED);
+        order.setApproverId(request.getApproverId());
+        order.setApprovalRemark(request.getApprovalRemark());
+        order.setApprovedAt(LocalDateTime.now());
+
+        purchaseOrderMapper.update(order);
+    }
+
+    @Override
+    public void rejectPurchaseOrder(Long id, PurchaseApproveRequest request) {
+        validateApproveRequest(request);
+
+        PurchaseOrder order = getExistingOrder(id);
+        ensureStatus(order, STATUS_PENDING);
+
+        order.setStatus(STATUS_REJECTED);
+        order.setApproverId(request.getApproverId());
+        order.setApprovalRemark(request.getApprovalRemark());
+        order.setApprovedAt(LocalDateTime.now());
+
+        purchaseOrderMapper.update(order);
+    }
+
+    @Override
+    @Transactional
+    public void completePurchaseOrder(Long id, PurchaseCompleteRequest request) {
+        validateCompleteRequest(request);
+
+        PurchaseOrder order = getExistingOrder(id);
+        ensureStatus(order, STATUS_APPROVED);
+
+        List<PurchaseOrderItem> items = purchaseOrderItemMapper.findByOrderId(id);
+        if (items == null || items.isEmpty()) {
+            throw new BusinessException("Purchase order item list cannot be empty.");
+        }
+
+        for (PurchaseOrderItem item : items) {
+            StockInRequest stockInRequest = new StockInRequest();
+            stockInRequest.setProductId(item.getProductId());
+            stockInRequest.setQuantity(item.getQuantity());
+            stockInRequest.setOperatorId(request.getOperatorId());
+            stockInRequest.setRemark(request.getRemark());
+            stockService.stockIn(stockInRequest);
+        }
+
+        order.setStatus(STATUS_COMPLETED);
+        purchaseOrderMapper.update(order);
+    }
+
+    @Override
     public Object getPurchaseOrderDetail(Long id) {
+        return getExistingOrder(id);
+    }
+
+    @Override
+    public Object listPurchaseOrders() {
+        return purchaseOrderMapper.findAll();
+    }
+
+    private PurchaseOrder getExistingOrder(Long id) {
         if (id == null) {
             throw new BusinessException("Purchase order id is required.");
         }
@@ -68,13 +146,13 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         if (order == null) {
             throw new BusinessException("Purchase order does not exist.");
         }
-
         return order;
     }
 
-    @Override
-    public Object listPurchaseOrders() {
-        return purchaseOrderMapper.findAll();
+    private void ensureStatus(PurchaseOrder order, String expectedStatus) {
+        if (!expectedStatus.equals(order.getStatus())) {
+            throw new BusinessException("Invalid purchase order status.");
+        }
     }
 
     private void validateCreateRequest(PurchaseCreateRequest request) {
@@ -98,6 +176,18 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         }
         if (item.getQuantity() == null || item.getQuantity() <= 0) {
             throw new BusinessException("Purchase quantity must be greater than 0.");
+        }
+    }
+
+    private void validateApproveRequest(PurchaseApproveRequest request) {
+        if (request == null || request.getApproverId() == null) {
+            throw new BusinessException("Approver id is required.");
+        }
+    }
+
+    private void validateCompleteRequest(PurchaseCompleteRequest request) {
+        if (request == null || request.getOperatorId() == null) {
+            throw new BusinessException("Operator id is required.");
         }
     }
 }
