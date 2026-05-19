@@ -35,6 +35,11 @@ public class StockWarningServiceImpl implements StockWarningService {
         int currentStock = safeNumber(product.getCurrentStock());
         int safeStock = safeNumber(product.getSafeStock());
 
+        if (safeStock <= 0) {
+            resolveExistingWarning(productId, currentStock, safeStock);
+            return;
+        }
+
         StockWarning warning = stockWarningMapper.findByProductId(productId);
         if (currentStock < safeStock) {
             activateWarning(productId, currentStock, safeStock, warning);
@@ -51,6 +56,13 @@ public class StockWarningServiceImpl implements StockWarningService {
     @Override
     public Object listAllWarnings() {
         return stockWarningMapper.findAll();
+    }
+
+    private void resolveExistingWarning(Long productId, int currentStock, int safeStock) {
+        StockWarning warning = stockWarningMapper.findByProductId(productId);
+        if (warning != null && STATUS_ACTIVE.equals(warning.getStatus())) {
+            resolveWarning(warning, currentStock, safeStock);
+        }
     }
 
     private void activateWarning(Long productId, int currentStock, int safeStock, StockWarning warning) {
