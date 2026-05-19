@@ -8,6 +8,7 @@ import com.example.inventory.exception.BusinessException;
 import com.example.inventory.mapper.ProductMapper;
 import com.example.inventory.mapper.StockRecordMapper;
 import com.example.inventory.service.StockService;
+import com.example.inventory.service.StockWarningService;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -19,10 +20,16 @@ public class StockServiceImpl implements StockService {
 
     private final ProductMapper productMapper;
     private final StockRecordMapper stockRecordMapper;
+    private final StockWarningService stockWarningService;
 
-    public StockServiceImpl(ProductMapper productMapper, StockRecordMapper stockRecordMapper) {
+    public StockServiceImpl(
+            ProductMapper productMapper,
+            StockRecordMapper stockRecordMapper,
+            StockWarningService stockWarningService
+    ) {
         this.productMapper = productMapper;
         this.stockRecordMapper = stockRecordMapper;
+        this.stockWarningService = stockWarningService;
     }
 
     @Override
@@ -47,6 +54,7 @@ public class StockServiceImpl implements StockService {
                 request.getRemark()
         );
         stockRecordMapper.insert(record);
+        stockWarningService.refreshWarning(product.getId());
     }
 
     @Override
@@ -74,6 +82,7 @@ public class StockServiceImpl implements StockService {
                 request.getRemark()
         );
         stockRecordMapper.insert(record);
+        stockWarningService.refreshWarning(product.getId());
     }
 
     @Override
