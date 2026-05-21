@@ -11,6 +11,7 @@ import com.example.inventory.exception.BusinessException;
 import com.example.inventory.mapper.ProductMapper;
 import com.example.inventory.mapper.PurchaseOrderItemMapper;
 import com.example.inventory.mapper.PurchaseOrderMapper;
+import com.example.inventory.service.AuthService;
 import com.example.inventory.service.PurchaseOrderService;
 import com.example.inventory.service.StockService;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,17 +29,20 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final PurchaseOrderItemMapper purchaseOrderItemMapper;
     private final ProductMapper productMapper;
     private final StockService stockService;
+    private final AuthService authService;
 
     public PurchaseOrderServiceImpl(
             PurchaseOrderMapper purchaseOrderMapper,
             PurchaseOrderItemMapper purchaseOrderItemMapper,
             ProductMapper productMapper,
-            StockService stockService
+            StockService stockService,
+            AuthService authService
     ) {
         this.purchaseOrderMapper = purchaseOrderMapper;
         this.purchaseOrderItemMapper = purchaseOrderItemMapper;
         this.productMapper = productMapper;
         this.stockService = stockService;
+        this.authService = authService;
     }
 
     @Override
@@ -74,6 +78,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Override
     public void approvePurchaseOrder(Long id, PurchaseApproveRequest request) {
         validateApproveRequest(request);
+        authService.ensureAdmin(request.getApproverId());
 
         PurchaseOrder order = getExistingOrder(id);
         ensureStatus(order, STATUS_PENDING);
@@ -89,6 +94,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Override
     public void rejectPurchaseOrder(Long id, PurchaseApproveRequest request) {
         validateApproveRequest(request);
+        authService.ensureAdmin(request.getApproverId());
 
         PurchaseOrder order = getExistingOrder(id);
         ensureStatus(order, STATUS_PENDING);
