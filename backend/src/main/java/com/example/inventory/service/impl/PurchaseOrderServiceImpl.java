@@ -14,11 +14,13 @@ import com.example.inventory.mapper.PurchaseOrderMapper;
 import com.example.inventory.service.AuthService;
 import com.example.inventory.service.PurchaseOrderService;
 import com.example.inventory.service.StockService;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Service
 public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private static final String STATUS_PENDING = "PENDING";
     private static final String STATUS_APPROVED = "APPROVED";

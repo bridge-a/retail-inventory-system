@@ -10,3 +10,44 @@
 - 采购申请缺少审批流程约束，容易出现越权审批或重复变更状态。
 - 低库存商品发现不及时，补货依赖人工查看。
 - 普通员工、店长和管理员之间的权限边界不清。
+
+## 最小运行版启动方式
+
+### 启动后端
+
+后端使用 Spring Boot + H2 数据库，启动后会自动初始化演示数据。
+
+```bash
+cd backend
+mvn spring-boot:run
+```
+
+后端默认地址：
+
+```text
+http://localhost:8080
+```
+
+H2 控制台：
+
+```text
+http://localhost:8080/h2-console
+```
+
+连接信息：
+
+```text
+JDBC URL: jdbc:h2:file:./data/retail_inventory
+User Name: sa
+Password: 留空
+```
+
+### 打开前端
+
+前端是独立静态页面，可以直接打开：
+
+```text
+frontend/index.html
+```
+
+如果后端已启动，前端会自动连接 `http://localhost:8080/api/dashboard` 并使用数据库数据；如果后端未启动，页面会自动回退到前端演示数据。

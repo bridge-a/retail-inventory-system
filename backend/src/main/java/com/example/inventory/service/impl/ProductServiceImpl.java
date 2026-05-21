@@ -6,7 +6,9 @@ import com.example.inventory.entity.Product;
 import com.example.inventory.exception.BusinessException;
 import com.example.inventory.mapper.ProductMapper;
 import com.example.inventory.service.ProductService;
+import org.springframework.stereotype.Service;
 
+@Service
 public class ProductServiceImpl implements ProductService {
     private final ProductMapper productMapper;
 

@@ -6,9 +6,11 @@ import com.example.inventory.exception.BusinessException;
 import com.example.inventory.mapper.ProductMapper;
 import com.example.inventory.mapper.StockWarningMapper;
 import com.example.inventory.service.StockWarningService;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
+@Service
 public class StockWarningServiceImpl implements StockWarningService {
     private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_RESOLVED = "RESOLVED";
