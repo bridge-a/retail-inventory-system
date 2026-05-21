@@ -94,6 +94,7 @@ async function apiFetch(path, options = {}) {
 
 async function loadDashboard(options = {}) {
     try {
+        await apiFetch("/health");
         const dashboard = await apiFetch("/dashboard");
         state.products = dashboard.products || state.products;
         state.records = dashboard.records || state.records;
@@ -101,13 +102,13 @@ async function loadDashboard(options = {}) {
         state.connected = true;
         renderAll();
         if (!options.silent) {
-            showToast("已连接后端数据库", "success");
+            showToast("后端健康检查通过，已连接数据库", "success");
         }
     } catch (error) {
         state.connected = false;
         renderAll();
         if (!options.silent) {
-            showToast("后端未启动，当前使用演示数据", "error");
+            showToast("后端未启动，当前使用前端演示数据", "error");
         }
     }
 }
@@ -142,7 +143,7 @@ function renderMetrics() {
 function renderRoleContext() {
     const user = currentUser();
     document.body.dataset.role = user.role;
-    const sourceText = state.connected ? "已连接后端数据库" : "当前使用前端演示数据";
+    const sourceText = state.connected ? "后端健康检查通过，已连接数据库" : "后端未启动，当前使用前端演示数据";
     $("#roleSummary").textContent = `${user.summary} · ${sourceText}`;
     $("#roleBadge").textContent = user.role;
     $("#roleBannerTitle").textContent = user.title;
