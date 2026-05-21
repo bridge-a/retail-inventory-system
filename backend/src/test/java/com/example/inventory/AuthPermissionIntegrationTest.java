@@ -27,6 +27,7 @@ public class AuthPermissionIntegrationTest {
         shouldLoginActiveUser();
         shouldAllowAdminToApprovePurchaseOrder();
         shouldRejectEmployeeApprovingPurchaseOrder();
+        shouldRejectEmployeeRejectingPurchaseOrder();
         shouldRejectDisabledAdminApprovingPurchaseOrder();
 
         System.out.println("AuthPermissionIntegrationTest passed.");
@@ -80,6 +81,27 @@ public class AuthPermissionIntegrationTest {
         PurchaseOrder unchanged = context.purchaseOrderMapper.findById(11L);
         assertEquals("PENDING", unchanged.getStatus(), "order status should remain PENDING");
         assertEquals(null, unchanged.getApproverId(), "employee approver should not be saved");
+    }
+
+    private static void shouldRejectEmployeeRejectingPurchaseOrder() {
+        TestContext context = createContext();
+        context.userMapper.save(createUser(5L, "staff2", "123456", "EMPLOYEE", 1));
+        context.purchaseOrderMapper.save(createOrder(13L, "PENDING"));
+
+        PurchaseApproveRequest request = new PurchaseApproveRequest();
+        request.setApproverId(5L);
+        request.setApprovalRemark("employee try reject");
+
+        assertThrows(
+                BusinessException.class,
+                () -> context.purchaseOrderService.rejectPurchaseOrder(13L, request),
+                "employee should not reject purchase order"
+        );
+
+        PurchaseOrder unchanged = context.purchaseOrderMapper.findById(13L);
+        assertEquals("PENDING", unchanged.getStatus(), "order status should remain PENDING");
+        assertEquals(null, unchanged.getApproverId(), "employee reject operator should not be saved");
+        assertEquals(null, unchanged.getApprovalRemark(), "employee reject remark should not be saved");
     }
 
     private static void shouldRejectDisabledAdminApprovingPurchaseOrder() {
