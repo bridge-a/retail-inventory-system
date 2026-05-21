@@ -28,6 +28,7 @@ public class PurchaseFlowIntegrationTest {
         shouldApprovePendingPurchaseOrder();
         shouldRejectPendingPurchaseOrder();
         shouldRejectApproveWhenOrderIsNotPending();
+        shouldRejectReviewWhenOrderIsCompleted();
         shouldRejectCompleteWhenOrderIsNotApproved();
         shouldCompleteApprovedOrderAndCallStockIn();
 
@@ -86,7 +87,7 @@ public class PurchaseFlowIntegrationTest {
 
     private static void shouldRejectApproveWhenOrderIsNotPending() {
         TestContext context = createContext();
-        PurchaseOrder order = createOrder(12L, "COMPLETED");
+        PurchaseOrder order = createOrder(12L, "APPROVED");
         context.purchaseOrderMapper.save(order);
 
         PurchaseApproveRequest request = new PurchaseApproveRequest();
@@ -96,10 +97,34 @@ public class PurchaseFlowIntegrationTest {
         assertThrows(
                 BusinessException.class,
                 () -> context.service.approvePurchaseOrder(12L, request),
+                "approved order should not be approved again"
+        );
+
+        assertEquals("APPROVED", context.purchaseOrderMapper.findById(12L).getStatus(), "order status should remain unchanged");
+    }
+
+    private static void shouldRejectReviewWhenOrderIsCompleted() {
+        TestContext context = createContext();
+        PurchaseOrder order = createOrder(15L, "COMPLETED");
+        context.purchaseOrderMapper.save(order);
+
+        PurchaseApproveRequest request = new PurchaseApproveRequest();
+        request.setApproverId(303L);
+        request.setApprovalRemark("try review completed order");
+
+        assertThrows(
+                BusinessException.class,
+                () -> context.service.approvePurchaseOrder(15L, request),
                 "completed order should not be approved again"
         );
 
-        assertEquals("COMPLETED", context.purchaseOrderMapper.findById(12L).getStatus(), "order status should remain unchanged");
+        assertThrows(
+                BusinessException.class,
+                () -> context.service.rejectPurchaseOrder(15L, request),
+                "completed order should not be rejected again"
+        );
+
+        assertEquals("COMPLETED", context.purchaseOrderMapper.findById(15L).getStatus(), "completed order status should remain unchanged");
     }
 
     private static void shouldRejectCompleteWhenOrderIsNotApproved() {
