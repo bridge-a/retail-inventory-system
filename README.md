@@ -42,12 +42,26 @@ User Name: sa
 Password: 留空
 ```
 
-### 打开前端
+### 启动前端
 
-前端是独立静态页面，可以直接打开：
+前端保持独立运行，使用本地静态服务启动：
+
+```bash
+cd frontend
+npm start
+```
+
+前端默认地址：
 
 ```text
-frontend/index.html
+http://localhost:5173
+```
+
+测试账号：
+
+```text
+管理员：manager / 123456
+普通员工：staff / 123456
 ```
 
 如果后端已启动，前端会自动连接 `http://localhost:8080/api/dashboard` 并使用数据库数据；如果后端未启动，页面会自动回退到前端演示数据。

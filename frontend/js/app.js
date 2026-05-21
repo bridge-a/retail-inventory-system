@@ -1,6 +1,9 @@
 const seedState = () => ({
     connected: false,
+    isAuthenticated: false,
     currentRole: "ADMIN",
+    activePage: "overview",
+    user: null,
     stockType: "IN",
     nextRecordId: 5,
     nextOrderId: 4,
@@ -27,6 +30,8 @@ const seedState = () => ({
 const users = {
     ADMIN: {
         id: 2,
+        username: "manager",
+        password: "123456",
         name: "李店长",
         role: "ADMIN",
         title: "管理员工作台",
@@ -36,6 +41,8 @@ const users = {
     },
     EMPLOYEE: {
         id: 3,
+        username: "staff",
+        password: "123456",
         name: "王店员",
         role: "EMPLOYEE",
         title: "普通员工工作台",
@@ -43,6 +50,15 @@ const users = {
         description: "不可审批采购单，只能提交申请并跟踪自己的采购单状态。",
         focus: ["提交采购申请", "查看我的申请", "不可审批采购单"]
     }
+};
+
+const pageMeta = {
+    overview: { title: "库存采购工作台" },
+    inventory: { title: "商品库存" },
+    stock: { title: "出入库流水" },
+    "purchase-create": { title: "采购申请" },
+    "purchase-approval": { title: "采购审批" },
+    warnings: { title: "低库存预警" }
 };
 
 let state = seedState();
@@ -64,7 +80,26 @@ function getProduct(productId) {
 }
 
 function currentUser() {
-    return users[state.currentRole];
+    return state.user || users[state.currentRole];
+}
+
+function normalizeUser(user) {
+    return {
+        ...users[user.role],
+        id: user.id,
+        username: user.username,
+        name: user.realName || user.name,
+        role: user.role
+    };
+}
+
+function canAccessPage(page) {
+    return page !== "purchase-approval" || currentUser().role === "ADMIN";
+}
+
+function setActivePage(page) {
+    state.activePage = canAccessPage(page) ? page : "overview";
+    renderAll();
 }
 
 async function apiFetch(path, options = {}) {
@@ -92,6 +127,45 @@ async function apiFetch(path, options = {}) {
     return text ? JSON.parse(text) : null;
 }
 
+async function loginAs(role) {
+    const fallbackUser = users[role];
+    state.currentRole = role;
+    state.user = fallbackUser;
+    state.isAuthenticated = true;
+    state.activePage = "overview";
+    renderAll();
+
+    try {
+        const backendUser = await apiFetch("/users/login", {
+            method: "POST",
+            body: JSON.stringify({
+                username: fallbackUser.username,
+                password: fallbackUser.password
+            })
+        });
+        state.user = normalizeUser(backendUser);
+        state.currentRole = state.user.role;
+        await loadDashboard({ silent: true });
+        showToast(`${state.user.name} 登录成功，已连接后端数据库`, "success");
+    } catch (error) {
+        state.connected = false;
+        renderAll();
+        showToast(`${fallbackUser.name} 已进入前端演示模式`, "error");
+    }
+}
+
+function logout() {
+    const preservedData = seedState();
+    state = {
+        ...preservedData,
+        products: state.products,
+        records: state.records,
+        purchaseOrders: state.purchaseOrders,
+        connected: state.connected
+    };
+    renderAll();
+}
+
 async function loadDashboard(options = {}) {
     try {
         await apiFetch("/health");
@@ -107,7 +181,7 @@ async function loadDashboard(options = {}) {
     } catch (error) {
         state.connected = false;
         renderAll();
-        if (!options.silent) {
+        if (!options.silent && state.isAuthenticated) {
             showToast("后端未启动，当前使用前端演示数据", "error");
         }
     }
@@ -120,6 +194,9 @@ function formatTime() {
 
 function showToast(message, type = "success") {
     const toast = $("#toast");
+    if (!toast) {
+        return;
+    }
     toast.textContent = message;
     toast.className = `toast is-visible is-${type}`;
     clearTimeout(toastTimer);
@@ -133,6 +210,31 @@ function lowStockProducts() {
     return state.products.filter((product) => product.status === 1 && product.currentStock < product.safeStock);
 }
 
+function renderAuthShell() {
+    document.body.dataset.auth = state.isAuthenticated ? "logged-in" : "logged-out";
+    $("#loginScreen").classList.toggle("is-hidden", state.isAuthenticated);
+    $("#appShell").classList.toggle("is-hidden", !state.isAuthenticated);
+}
+
+function renderNavigation() {
+    if (!canAccessPage(state.activePage)) {
+        state.activePage = "overview";
+    }
+
+    $$(".nav-item").forEach((item) => {
+        const adminOnly = item.dataset.adminOnly === "true";
+        item.classList.toggle("is-hidden", adminOnly && currentUser().role !== "ADMIN");
+        item.classList.toggle("is-active", item.dataset.page === state.activePage);
+    });
+}
+
+function renderPageState() {
+    $$(".page-view").forEach((view) => {
+        view.classList.toggle("is-active", view.dataset.pageView === state.activePage);
+    });
+    $("#pageTitle").textContent = pageMeta[state.activePage]?.title || "库存采购工作台";
+}
+
 function renderMetrics() {
     $("#metricProducts").textContent = state.products.filter((product) => product.status === 1).length;
     $("#metricWarnings").textContent = lowStockProducts().length;
@@ -144,6 +246,8 @@ function renderRoleContext() {
     const user = currentUser();
     document.body.dataset.role = user.role;
     const sourceText = state.connected ? "后端健康检查通过，已连接数据库" : "后端未启动，当前使用前端演示数据";
+    $("#currentUserName").textContent = user.name;
+    $("#currentUserRole").textContent = user.role;
     $("#roleSummary").textContent = `${user.summary} · ${sourceText}`;
     $("#roleBadge").textContent = user.role;
     $("#roleBannerTitle").textContent = user.title;
@@ -226,7 +330,7 @@ function renderRecords() {
         })
         .join("");
 
-    $("#recordTable").innerHTML = rows;
+    $("#recordTable").innerHTML = rows || `<tr><td colspan="8">暂无库存流水</td></tr>`;
 }
 
 function renderWarnings() {
@@ -257,55 +361,63 @@ function renderWarnings() {
         .join("");
 }
 
+function renderPurchaseCard(order, actionArea) {
+    const product = getProduct(order.productId);
+    const status = statusMap[order.status] || statusMap.PENDING;
+    return `
+        <article class="purchase-item">
+            <div class="purchase-main">
+                <div class="purchase-title">
+                    <strong>${order.code}</strong>
+                    <span>${product ? product.name : "未知商品"} · ${order.quantity}${product ? product.unit : ""} · ${order.reason}</span>
+                </div>
+                <span class="tag ${status.className}">${status.label}</span>
+            </div>
+            <div class="purchase-main">
+                <div class="purchase-title">
+                    <span>申请人：${order.applicant} · 审批人：${order.approver || "未审批"}</span>
+                    <span>${order.remark || "等待处理"}</span>
+                </div>
+                <div class="purchase-actions">
+                    ${actionArea}
+                </div>
+            </div>
+        </article>
+    `;
+}
+
 function renderPurchases() {
     const user = currentUser();
     const isAdmin = user.role === "ADMIN";
-    $("#purchasePanelTitle").textContent = isAdmin ? "采购审批处理" : "我的采购申请";
-    $("#purchasePanelDesc").textContent = isAdmin
-        ? "管理员处理 PENDING 采购单，并执行 APPROVED 采购入库"
-        : "普通员工只查看自己提交的采购申请和审批进度";
-    $("#roleHint").textContent = isAdmin ? "管理员可审批采购单" : "普通员工不可审批采购单";
-    $("#roleHint").className = `role-hint ${isAdmin ? "" : "tag-red"}`;
-
-    const visibleOrders = isAdmin
+    const userOrders = isAdmin
         ? state.purchaseOrders
         : state.purchaseOrders.filter((order) => order.applicant === user.name);
 
-    const list = visibleOrders.map((order) => {
-        const product = getProduct(order.productId);
-        const status = statusMap[order.status];
-        const canReview = isAdmin && order.status === "PENDING";
-        const canComplete = isAdmin && order.status === "APPROVED";
-        const actionArea = isAdmin
-            ? `
-                <button class="ghost-button" type="button" data-approve-id="${order.id}" ${canReview ? "" : "disabled"}>审批通过</button>
-                <button class="danger-button" type="button" data-reject-id="${order.id}" ${canReview ? "" : "disabled"}>驳回</button>
-                <button class="small-button" type="button" data-complete-id="${order.id}" ${canComplete ? "" : "disabled"}>采购入库</button>
-            `
-            : `<span class="employee-note">${employeeOrderNote(order.status)}</span>`;
-        return `
-            <article class="purchase-item">
-                <div class="purchase-main">
-                    <div class="purchase-title">
-                        <strong>${order.code}</strong>
-                        <span>${product ? product.name : "未知商品"} · ${order.quantity}${product ? product.unit : ""} · ${order.reason}</span>
-                    </div>
-                    <span class="tag ${status.className}">${status.label}</span>
-                </div>
-                <div class="purchase-main">
-                    <div class="purchase-title">
-                        <span>申请人：${order.applicant} · 审批人：${order.approver || "未审批"}</span>
-                        <span>${order.remark || "等待处理"}</span>
-                    </div>
-                    <div class="purchase-actions">
-                        ${actionArea}
-                    </div>
-                </div>
-            </article>
-        `;
-    }).join("");
+    $("#myPurchaseTitle").textContent = isAdmin ? "采购申请记录" : "我的采购申请";
+    $("#myPurchaseDesc").textContent = isAdmin
+        ? "查看门店采购申请记录"
+        : "查看自己提交的采购申请和审批进度";
 
-    $("#purchaseList").innerHTML = list || `<div class="empty-state">${isAdmin ? "暂无采购单" : "暂无我的采购申请"}</div>`;
+    $("#myPurchaseList").innerHTML = userOrders
+        .map((order) => renderPurchaseCard(order, `<span class="employee-note">${employeeOrderNote(order.status)}</span>`))
+        .join("") || `<div class="empty-state">${isAdmin ? "暂无采购单" : "暂无我的采购申请"}</div>`;
+
+    $("#purchasePanelTitle").textContent = "采购审批处理";
+    $("#purchasePanelDesc").textContent = "管理员处理 PENDING 采购单，并执行 APPROVED 采购入库";
+    $("#roleHint").textContent = "管理员可审批采购单";
+    $("#roleHint").className = "role-hint";
+
+    const approvalOrders = isAdmin ? state.purchaseOrders : [];
+    $("#purchaseList").innerHTML = approvalOrders.map((order) => {
+        const canReview = order.status === "PENDING";
+        const canComplete = order.status === "APPROVED";
+        const actionArea = `
+            <button class="ghost-button" type="button" data-approve-id="${order.id}" ${canReview ? "" : "disabled"}>审批通过</button>
+            <button class="danger-button" type="button" data-reject-id="${order.id}" ${canReview ? "" : "disabled"}>驳回</button>
+            <button class="small-button" type="button" data-complete-id="${order.id}" ${canComplete ? "" : "disabled"}>采购入库</button>
+        `;
+        return renderPurchaseCard(order, actionArea);
+    }).join("") || `<div class="empty-state">暂无可处理采购单</div>`;
 }
 
 function employeeOrderNote(status) {
@@ -321,12 +433,6 @@ function employeeOrderNote(status) {
     return "已完成入库";
 }
 
-function renderRoleButtons() {
-    $$(".role-button").forEach((button) => {
-        button.classList.toggle("is-active", button.dataset.role === state.currentRole);
-    });
-}
-
 function renderStockSegments() {
     $$(".segment").forEach((button) => {
         button.classList.toggle("is-active", button.dataset.stockType === state.stockType);
@@ -334,6 +440,9 @@ function renderStockSegments() {
 }
 
 function renderAll() {
+    renderAuthShell();
+    renderNavigation();
+    renderPageState();
     renderRoleContext();
     renderMetrics();
     renderSelects();
@@ -341,7 +450,6 @@ function renderAll() {
     renderRecords();
     renderWarnings();
     renderPurchases();
-    renderRoleButtons();
     renderStockSegments();
 }
 
@@ -437,6 +545,7 @@ async function submitPurchaseForm(event) {
                 })
             });
             await loadDashboard({ silent: true });
+            setActivePage("purchase-create");
             showToast("采购申请已写入后端数据库", "success");
         } catch (error) {
             showToast(error.message, "error");
@@ -539,6 +648,10 @@ async function completePurchase(orderId) {
     if (!order) {
         return;
     }
+    if (currentUser().role !== "ADMIN") {
+        showToast("普通员工不能执行采购入库", "error");
+        return;
+    }
     if (order.status !== "APPROVED") {
         showToast("只有 APPROVED 采购单可以入库", "error");
         return;
@@ -569,13 +682,34 @@ async function completePurchase(orderId) {
     renderAll();
 }
 
+function resetLocalData() {
+    const snapshot = {
+        connected: state.connected,
+        isAuthenticated: state.isAuthenticated,
+        currentRole: state.currentRole,
+        activePage: state.activePage,
+        user: state.user
+    };
+    state = {
+        ...seedState(),
+        ...snapshot
+    };
+    renderAll();
+    if (snapshot.connected) {
+        loadDashboard({ silent: true });
+    }
+    showToast(snapshot.connected ? "已重新加载后端数据" : "演示数据已重置", "success");
+}
+
 function bindEvents() {
-    $$(".role-button").forEach((button) => {
+    $$("[data-login-role]").forEach((button) => {
         button.addEventListener("click", () => {
-            state.currentRole = button.dataset.role;
-            showToast(`当前角色：${currentUser().name}`, "success");
-            renderAll();
+            loginAs(button.dataset.loginRole);
         });
+    });
+
+    $("#logoutButton").addEventListener("click", () => {
+        logout();
     });
 
     $$(".segment").forEach((button) => {
@@ -588,19 +722,25 @@ function bindEvents() {
     $("#stockForm").addEventListener("submit", submitStockForm);
     $("#purchaseForm").addEventListener("submit", submitPurchaseForm);
     $("#productSearch").addEventListener("input", renderProducts);
-    $("#resetData").addEventListener("click", () => {
-        state = seedState();
-        showToast("数据已重置", "success");
-        renderAll();
-    });
+    $("#resetData").addEventListener("click", resetLocalData);
 
     document.addEventListener("click", (event) => {
+        const navItem = event.target.closest("[data-page]");
+        if (navItem) {
+            event.preventDefault();
+            setActivePage(navItem.dataset.page);
+            return;
+        }
+
         const quickStockButton = event.target.closest("[data-quick-stock]");
         if (quickStockButton) {
             state.stockType = quickStockButton.dataset.quickStock;
-            $("#stockProduct").value = quickStockButton.dataset.productId;
-            $("#stockQuantity").focus();
-            renderStockSegments();
+            setActivePage("stock");
+            window.requestAnimationFrame(() => {
+                $("#stockProduct").value = quickStockButton.dataset.productId;
+                $("#stockQuantity").focus();
+                renderStockSegments();
+            });
             return;
         }
 
@@ -621,15 +761,7 @@ function bindEvents() {
             completePurchase(completeButton.dataset.completeId);
         }
     });
-
-    $$(".nav-item").forEach((item) => {
-        item.addEventListener("click", () => {
-            $$(".nav-item").forEach((nav) => nav.classList.remove("is-active"));
-            item.classList.add("is-active");
-        });
-    });
 }
 
 bindEvents();
 renderAll();
-loadDashboard();
