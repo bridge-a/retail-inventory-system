@@ -13,6 +13,7 @@ import com.example.inventory.exception.BusinessException;
 import com.example.inventory.mapper.ProductMapper;
 import com.example.inventory.mapper.PurchaseOrderItemMapper;
 import com.example.inventory.mapper.PurchaseOrderMapper;
+import com.example.inventory.service.AuthService;
 import com.example.inventory.service.StockService;
 import com.example.inventory.service.impl.PurchaseOrderServiceImpl;
 
@@ -173,12 +174,14 @@ public class PurchaseFlowIntegrationTest {
         FakePurchaseOrderItemMapper purchaseOrderItemMapper = new FakePurchaseOrderItemMapper();
         FakeProductMapper productMapper = new FakeProductMapper();
         FakeStockService stockService = new FakeStockService();
+        FakeAuthService authService = new FakeAuthService();
 
         PurchaseOrderServiceImpl service = new PurchaseOrderServiceImpl(
                 purchaseOrderMapper,
                 purchaseOrderItemMapper,
                 productMapper,
-                stockService
+                stockService,
+                authService
         );
 
         return new TestContext(
@@ -186,7 +189,8 @@ public class PurchaseFlowIntegrationTest {
                 purchaseOrderMapper,
                 purchaseOrderItemMapper,
                 productMapper,
-                stockService
+                stockService,
+                authService
         );
     }
 
@@ -274,19 +278,22 @@ public class PurchaseFlowIntegrationTest {
         private final FakePurchaseOrderItemMapper purchaseOrderItemMapper;
         private final FakeProductMapper productMapper;
         private final FakeStockService stockService;
+        private final FakeAuthService authService;
 
         private TestContext(
                 PurchaseOrderServiceImpl service,
                 FakePurchaseOrderMapper purchaseOrderMapper,
                 FakePurchaseOrderItemMapper purchaseOrderItemMapper,
                 FakeProductMapper productMapper,
-                FakeStockService stockService
+                FakeStockService stockService,
+                FakeAuthService authService
         ) {
             this.service = service;
             this.purchaseOrderMapper = purchaseOrderMapper;
             this.purchaseOrderItemMapper = purchaseOrderItemMapper;
             this.productMapper = productMapper;
             this.stockService = stockService;
+            this.authService = authService;
         }
     }
 
@@ -410,6 +417,27 @@ public class PurchaseFlowIntegrationTest {
         @Override
         public Object listStockRecordsByProduct(Long productId) {
             return new ArrayList<>();
+        }
+    }
+
+    private static class FakeAuthService implements AuthService {
+        @Override
+        public com.example.inventory.entity.User login(com.example.inventory.dto.LoginRequest request) {
+            return null;
+        }
+
+        @Override
+        public com.example.inventory.entity.User getUserDetail(Long id) {
+            return null;
+        }
+
+        @Override
+        public Object listUsers() {
+            return new ArrayList<>();
+        }
+
+        @Override
+        public void ensureAdmin(Long userId) {
         }
     }
 }
