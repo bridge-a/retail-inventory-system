@@ -9,14 +9,17 @@ import com.example.inventory.mapper.ProductMapper;
 import com.example.inventory.mapper.StockRecordMapper;
 import com.example.inventory.service.StockService;
 import com.example.inventory.service.StockWarningService;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+@Service
 public class StockServiceImpl implements StockService {
     private static final String CHANGE_TYPE_IN = "IN";
     private static final String CHANGE_TYPE_OUT = "OUT";
     private static final String SOURCE_TYPE_MANUAL = "MANUAL";
+    private static final String SOURCE_TYPE_PURCHASE = "PURCHASE";
 
     private final ProductMapper productMapper;
     private final StockRecordMapper stockRecordMapper;
@@ -157,10 +160,39 @@ public class StockServiceImpl implements StockService {
         record.setQuantity(quantity);
         record.setBeforeStock(beforeStock);
         record.setAfterStock(afterStock);
-        record.setSourceType(SOURCE_TYPE_MANUAL);
+        record.setSourceType(resolveSourceType(remark));
+        record.setSourceId(resolveSourceId(remark));
         record.setOperatorId(operatorId);
         record.setRemark(remark);
         record.setCreatedAt(LocalDateTime.now());
         return record;
+    }
+
+    private String resolveSourceType(String remark) {
+        if (remark != null && remark.startsWith("Purchase order stock-in")) {
+            return SOURCE_TYPE_PURCHASE;
+        }
+        return SOURCE_TYPE_MANUAL;
+    }
+
+    private Long resolveSourceId(String remark) {
+        if (remark == null || !remark.startsWith("Purchase order stock-in")) {
+            return null;
+        }
+
+        String marker = "orderId=";
+        int start = remark.indexOf(marker);
+        if (start < 0) {
+            return null;
+        }
+        int valueStart = start + marker.length();
+        int valueEnd = valueStart;
+        while (valueEnd < remark.length() && Character.isDigit(remark.charAt(valueEnd))) {
+            valueEnd++;
+        }
+        if (valueEnd == valueStart) {
+            return null;
+        }
+        return Long.valueOf(remark.substring(valueStart, valueEnd));
     }
 }

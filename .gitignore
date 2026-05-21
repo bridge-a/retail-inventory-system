@@ -1,4 +1,5 @@
 target/
+backend/data/
 node_modules/
 dist/
 .idea/

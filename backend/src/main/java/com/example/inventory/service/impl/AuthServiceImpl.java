@@ -5,7 +5,9 @@ import com.example.inventory.entity.User;
 import com.example.inventory.exception.BusinessException;
 import com.example.inventory.mapper.UserMapper;
 import com.example.inventory.service.AuthService;
+import org.springframework.stereotype.Service;
 
+@Service
 public class AuthServiceImpl implements AuthService {
     public static final String ROLE_ADMIN = "ADMIN";
     public static final String ROLE_EMPLOYEE = "EMPLOYEE";

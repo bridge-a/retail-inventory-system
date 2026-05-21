@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小型零售门店库存采购管理系统</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-auth="logged-out">
+    <section class="login-screen" id="loginScreen">
+        <div class="login-panel">
+            <div class="login-brand">
+                <div class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" role="img">
+                        <path d="M5 7.5 12 4l7 3.5v8.8L12 20l-7-3.7V7.5Z"></path>
+                        <path d="M5.4 7.7 12 11l6.6-3.3"></path>
+                        <path d="M12 11v8.4"></path>
+                    </svg>
+                </div>
+                <div>
+                    <p class="page-kicker">Retail Inventory Console</p>
+                    <h1>零售库存系统</h1>
+                    <span>库存流水 · 采购审批 · 低库存预警</span>
+                </div>
+            </div>
+
+            <div class="login-copy">
+                <h2>选择测试账号登录</h2>
+                <p>普通员工可提交采购申请并登记出入库，管理员可审批采购单并执行采购入库。</p>
+            </div>
+
+            <div class="login-options">
+                <button class="login-card" type="button" data-login-role="ADMIN">
+                    <span class="login-role">ADMIN</span>
+                    <strong>李店长</strong>
+                    <small>管理员账号 · 可审批采购单</small>
+                </button>
+                <button class="login-card" type="button" data-login-role="EMPLOYEE">
+                    <span class="login-role login-role-blue">EMPLOYEE</span>
+                    <strong>王店员</strong>
+                    <small>普通员工账号 · 不可审批采购单</small>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <div class="app-shell is-hidden" id="appShell">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" role="img">
+                        <path d="M5 7.5 12 4l7 3.5v8.8L12 20l-7-3.7V7.5Z"></path>
+                        <path d="M5.4 7.7 12 11l6.6-3.3"></path>
+                        <path d="M12 11v8.4"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1>零售库存系统</h1>
+                    <p>库存流水 · 采购审批 · 低库存预警</p>
+                </div>
+            </div>
+
+            <nav class="nav-list" aria-label="主要模块">
+                <a class="nav-item is-active" href="#overview" data-page="overview">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M4 13h6v7H4v-7Zm10-9h6v16h-6V4ZM4 4h6v5H4V4Z"></path></svg>
+                    </span>
+                    概览
+                </a>
+                <a class="nav-item" href="#inventory" data-page="inventory">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5v-7Z"></path><path d="m4.4 8.7 7.6 4.2 7.6-4.2"></path><path d="M12 13v7"></path></svg>
+                    </span>
+                    商品库存
+                </a>
+                <a class="nav-item" href="#stock" data-page="stock">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M5 5h14v14H5V5Z"></path><path d="M8 9h8M8 13h8M8 17h5"></path></svg>
+                    </span>
+                    出入库流水
+                </a>
+                <a class="nav-item" href="#purchase-create" data-page="purchase-create">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M7 4h10l2 4v12H5V8l2-4Z"></path><path d="M7 8h10M9 12h6M9 16h4"></path></svg>
+                    </span>
+                    采购申请
+                </a>
+                <a class="nav-item" href="#purchase-approval" data-page="purchase-approval" data-admin-only="true">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"></path><path d="M7 19h10"></path></svg>
+                    </span>
+                    采购审批
+                </a>
+                <a class="nav-item" href="#warnings" data-page="warnings">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M12 4 21 20H3L12 4Z"></path><path d="M12 9v5M12 17h.01"></path></svg>
+                    </span>
+                    低库存预警
+                </a>
+            </nav>
+
+            <div class="sidebar-foot">
+                <span>当前门店</span>
+                <strong>南湖社区便利店</strong>
+            </div>
+        </aside>
+
+        <main class="content">
+            <header class="topbar">
+                <div>
+                    <p class="page-kicker">Retail Inventory Console</p>
+                    <h2 id="pageTitle">库存采购工作台</h2>
+                    <p class="role-summary" id="roleSummary">管理员视角：处理采购审批、采购入库和库存异常。</p>
+                </div>
+                <div class="topbar-actions">
+                    <div class="current-user-card">
+                        <span id="currentUserRole">ADMIN</span>
+                        <strong id="currentUserName">李店长</strong>
+                    </div>
+                    <button class="small-button" type="button" id="logoutButton">退出登录</button>
+                    <button class="icon-button" type="button" id="resetData" aria-label="重置演示数据" title="重置演示数据">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7v5h5"></path><path d="M20 17a8 8 0 0 1-14.7-4.4L4 12"></path><path d="M20 12A8 8 0 0 0 5.8 7.1"></path></svg>
+                    </button>
+                </div>
+            </header>
+
+            <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+            <section class="page-view is-active" id="overview" data-page-view="overview">
+                <section class="role-banner" id="roleBanner" aria-label="当前角色视角">
+                    <div>
+                        <span class="role-badge" id="roleBadge">ADMIN</span>
+                        <strong id="roleBannerTitle">管理员工作台</strong>
+                        <p id="roleBannerText">可处理待审批采购单、执行采购入库，并查看全部库存流水和低库存预警。</p>
+                    </div>
+                    <div class="role-focus-list" id="roleFocusList"></div>
+                </section>
+
+                <section class="metrics" aria-label="概览指标">
+                    <article class="metric">
+                        <span class="metric-label">商品总数</span>
+                        <strong id="metricProducts">0</strong>
+                        <small>启用商品</small>
+                    </article>
+                    <article class="metric metric-warning">
+                        <span class="metric-label">低库存商品</span>
+                        <strong id="metricWarnings">0</strong>
+                        <small>需要关注</small>
+                    </article>
+                    <article class="metric metric-pending">
+                        <span class="metric-label">待审批采购单</span>
+                        <strong id="metricPending">0</strong>
+                        <small>PENDING</small>
+                    </article>
+                    <article class="metric metric-flow">
+                        <span class="metric-label">库存流水</span>
+                        <strong id="metricRecords">0</strong>
+                        <small>可追溯记录</small>
+                    </article>
+                </section>
+            </section>
+
+            <section class="page-view" id="inventory" data-page-view="inventory">
+                <section class="panel panel-wide">
+                    <div class="panel-head">
+                        <div>
+                            <h3>商品与库存</h3>
+                            <p>当前库存、安全库存和商品状态</p>
+                        </div>
+                        <div class="table-tools">
+                            <label class="search-box">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.2-4.2"></path><circle cx="11" cy="11" r="7"></circle></svg>
+                                <input type="search" id="productSearch" placeholder="搜索商品或编码">
+                            </label>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>商品编码</th>
+                                    <th>商品名称</th>
+                                    <th>分类</th>
+                                    <th>当前库存</th>
+                                    <th>安全库存</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productTable"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </section>
+
+            <section class="page-view" id="stock" data-page-view="stock">
+                <section class="layout-grid">
+                    <section class="panel">
+                        <div class="panel-head">
+                            <div>
+                                <h3>出入库操作</h3>
+                                <p>库存变更自动生成流水</p>
+                            </div>
+                        </div>
+                        <form class="stack-form" id="stockForm">
+                            <label>
+                                商品
+                                <select id="stockProduct"></select>
+                            </label>
+                            <div class="segmented" role="group" aria-label="出入库类型">
+                                <button class="segment is-active" type="button" data-stock-type="IN">入库</button>
+                                <button class="segment" type="button" data-stock-type="OUT">出库</button>
+                            </div>
+                            <label>
+                                数量
+                                <input type="number" id="stockQuantity" min="1" value="1">
+                            </label>
+                            <label>
+                                备注
+                                <input type="text" id="stockRemark" value="门店日常调整">
+                            </label>
+                            <button class="primary-button" type="submit">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+                                提交库存变更
+                            </button>
+                        </form>
+                    </section>
+
+                    <section class="panel panel-wide">
+                        <div class="panel-head">
+                            <div>
+                                <h3>库存流水</h3>
+                                <p>记录 beforeStock 与 afterStock</p>
+                            </div>
+                        </div>
+                        <div class="table-wrap table-compact">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>时间</th>
+                                        <th>商品</th>
+                                        <th>类型</th>
+                                        <th>数量</th>
+                                        <th>变更前</th>
+                                        <th>变更后</th>
+                                        <th>来源</th>
+                                        <th>操作人</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recordTable"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </section>
+            </section>
+
+            <section class="page-view" id="purchaseCreate" data-page-view="purchase-create">
+                <section class="layout-grid">
+                    <section class="panel">
+                        <div class="panel-head">
+                            <div>
+                                <h3>采购申请</h3>
+                                <p>新申请默认 PENDING</p>
+                            </div>
+                        </div>
+                        <form class="stack-form" id="purchaseForm">
+                            <label>
+                                商品
+                                <select id="purchaseProduct"></select>
+                            </label>
+                            <label>
+                                采购数量
+                                <input type="number" id="purchaseQuantity" min="1" value="10">
+                            </label>
+                            <label>
+                                申请原因
+                                <input type="text" id="purchaseReason" value="库存低于安全库存">
+                            </label>
+                            <button class="primary-button" type="submit">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"></path></svg>
+                                提交采购申请
+                            </button>
+                        </form>
+                    </section>
+
+                    <section class="panel panel-wide">
+                        <div class="panel-head">
+                            <div>
+                                <h3 id="myPurchaseTitle">我的采购申请</h3>
+                                <p id="myPurchaseDesc">查看自己提交的采购申请和审批进度</p>
+                            </div>
+                        </div>
+                        <div class="purchase-list" id="myPurchaseList"></div>
+                    </section>
+                </section>
+            </section>
+
+            <section class="page-view" id="purchaseApproval" data-page-view="purchase-approval">
+                <section class="panel panel-wide">
+                    <div class="panel-head">
+                        <div>
+                            <h3 id="purchasePanelTitle">采购审批</h3>
+                            <p id="purchasePanelDesc">管理员处理 PENDING 采购单，并执行 APPROVED 采购入库</p>
+                        </div>
+                        <span class="role-hint" id="roleHint">管理员可审批采购单</span>
+                    </div>
+                    <div class="purchase-list" id="purchaseList"></div>
+                </section>
+            </section>
+
+            <section class="page-view" id="warnings" data-page-view="warnings">
+                <section class="panel panel-wide">
+                    <div class="panel-head">
+                        <div>
+                            <h3>低库存预警</h3>
+                            <p>当前库存低于安全库存</p>
+                        </div>
+                    </div>
+                    <div class="warning-list" id="warningList"></div>
+                </section>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
