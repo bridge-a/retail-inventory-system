@@ -1,3 +1,15 @@
+SET FOREIGN_KEY_CHECKS = 0;
+
+DROP TABLE IF EXISTS stock_warning;
+DROP TABLE IF EXISTS stock_record;
+DROP TABLE IF EXISTS purchase_order_item;
+DROP TABLE IF EXISTS purchase_order;
+DROP TABLE IF EXISTS product;
+DROP TABLE IF EXISTS product_category;
+DROP TABLE IF EXISTS user_account;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
 CREATE TABLE user_account (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(64) NOT NULL UNIQUE,
@@ -8,7 +20,7 @@ CREATE TABLE user_account (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT chk_user_role CHECK (role IN ('ADMIN', 'EMPLOYEE'))
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE product_category (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -16,7 +28,7 @@ CREATE TABLE product_category (
     status TINYINT NOT NULL DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE product (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -32,7 +44,7 @@ CREATE TABLE product (
     CONSTRAINT fk_product_category FOREIGN KEY (category_id) REFERENCES product_category(id),
     CONSTRAINT chk_current_stock CHECK (current_stock >= 0),
     CONSTRAINT chk_safe_stock CHECK (safe_stock >= 0)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE purchase_order (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -47,7 +59,7 @@ CREATE TABLE purchase_order (
     CONSTRAINT fk_purchase_applicant FOREIGN KEY (applicant_id) REFERENCES user_account(id),
     CONSTRAINT fk_purchase_approver FOREIGN KEY (approver_id) REFERENCES user_account(id),
     CONSTRAINT chk_purchase_status CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'COMPLETED'))
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE purchase_order_item (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -58,7 +70,7 @@ CREATE TABLE purchase_order_item (
     CONSTRAINT fk_purchase_item_order FOREIGN KEY (order_id) REFERENCES purchase_order(id),
     CONSTRAINT fk_purchase_item_product FOREIGN KEY (product_id) REFERENCES product(id),
     CONSTRAINT chk_purchase_item_quantity CHECK (quantity > 0)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE stock_record (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -77,7 +89,7 @@ CREATE TABLE stock_record (
     CONSTRAINT chk_stock_record_type CHECK (change_type IN ('IN', 'OUT')),
     CONSTRAINT chk_stock_record_quantity CHECK (quantity > 0),
     CONSTRAINT chk_stock_record_after CHECK (after_stock >= 0)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE stock_warning (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -89,4 +101,4 @@ CREATE TABLE stock_warning (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_stock_warning_product FOREIGN KEY (product_id) REFERENCES product(id),
     CONSTRAINT chk_stock_warning_status CHECK (status IN ('ACTIVE', 'RESOLVED'))
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
