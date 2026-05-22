@@ -264,7 +264,7 @@
         </section>
       </section>
 
-      <section v-if="activeTab === 'approval'" class="view">
+      <section v-if="activeTab === 'approval' && isManager" class="view">
         <section class="panel">
           <div class="panel-head">
             <div>
@@ -485,9 +485,16 @@ export default {
       this.activeTab = "overview";
     },
     selectTab(tabKey) {
-      const allowed = this.visibleTabs.some((tab) => tab.key === tabKey);
-      this.activeTab = allowed ? tabKey : "overview";
-    },
+		const allowed = this.visibleTabs.some((tab) => tab.key === tabKey);
+		if (!allowed) {
+			this.activeTab = "overview";
+			if (tabKey === "approval") {
+				this.showToast("普通员工不能进入采购审批模块。", "error");
+			}
+			return;
+		}
+		this.activeTab = tabKey;
+	},
     normalizeUser(user) {
       return {
         id: user.id,
