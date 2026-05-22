@@ -11,9 +11,15 @@
 - 低库存商品发现不及时，补货依赖人工查看。
 - 普通员工、店长和管理员之间的权限边界不清。
 
-## 最小运行版启动方式
+## 技术结构
 
-### 启动后端
+- 后端：Spring Boot，默认运行在 `http://localhost:8080`
+- 前端：Vue 3 + Vite，默认运行在 `http://localhost:5173`
+- 数据库：默认 H2，另提供 MySQL profile 和初始化脚本
+
+前端保持独立运行，不打包进后端，前后端通过 REST API 联动。
+
+## 启动后端
 
 后端使用 Spring Boot + H2 数据库，启动后会自动初始化演示数据。
 
@@ -42,13 +48,20 @@ User Name: sa
 Password: 留空
 ```
 
-### 启动前端
+## 启动前端
 
-前端保持独立运行，使用本地静态服务启动：
+前端已改造为 Vue 3 + Vite 最小工程。
 
 ```bash
 cd frontend
+npm install
 npm start
+```
+
+也可以使用：
+
+```bash
+npm run dev
 ```
 
 前端默认地址：
@@ -57,16 +70,24 @@ npm start
 http://localhost:5173
 ```
 
+前端 API 基础地址固定为：
+
+```text
+http://localhost:8080
+```
+
+如果后端未启动，前端会显示“后端未连接”提示，并使用少量演示数据，避免页面空白。
+
 ## 测试账号
 
-管理员账号：
+管理员：
 
 ```text
 用户名：manager
 密码：123456
 ```
 
-普通员工账号：
+普通员工：
 
 ```text
 用户名：staff
@@ -75,27 +96,33 @@ http://localhost:5173
 
 ## 角色权限说明
 
-- 管理员登录后可以查看商品库存、库存流水、低库存预警，并可以进入采购审批模块。
-- 管理员可以审批 PENDING 状态采购单，可以驳回采购单，也可以对 APPROVED 状态采购单执行采购入库。
-- 普通员工登录后可以查看商品库存、提交采购申请、查看自己的采购申请状态。
-- 普通员工登录后不显示采购审批菜单，也不能执行审批、驳回或采购入库操作。
-- 前端页面会根据登录角色切换可见模块，后端接口也会校验审批人角色，避免只依赖前端隐藏按钮。
+- 管理员登录后可以查看首页概览、商品库存、库存流水、采购申请、采购审批、低库存预警。
+- 管理员可以审批 `PENDING` 状态采购单，可以驳回采购单，也可以对 `APPROVED` 状态采购单执行采购入库。
+- 普通员工登录后可以查看首页概览、商品库存、库存流水、采购申请、低库存预警。
+- 普通员工不能进入采购审批模块，前端不会显示采购审批入口，模块切换时也会进行二次拦截。
+- 页面会显示当前登录角色，方便区分管理员视角和普通员工视角。
 
 ## 前后端联动说明
 
-如果后端已启动，前端会自动连接：
+前端使用 `fetch` 调用后端 REST API，主要接口包括：
 
 ```text
-http://localhost:8080/api/dashboard
+POST /api/users/login
+GET  /api/dashboard
+POST /api/stock/in
+POST /api/stock/out
+POST /api/purchase-orders
+POST /api/purchase-orders/{id}/approve
+POST /api/purchase-orders/{id}/reject
+POST /api/purchase-orders/{id}/complete
+GET  /api/warnings
 ```
 
-并使用数据库中的真实演示数据。
+如果后端已启动，页面优先使用数据库中的真实演示数据。如果后端未启动或连接中断，页面会保留前端演示数据，并提示当前处于演示模式。
 
-如果后端未启动，页面会自动回退到前端演示数据，方便在无法启动后端时查看界面效果。
+## MySQL 运行方式
 
-## MySQL 运行方式（可选优化）
-
-项目默认使用 H2 文件数据库，便于课程验收时快速启动。为提升数据库可迁移性，项目同时提供 MySQL 运行配置和完整 7 张核心表结构脚本。
+项目默认使用 H2 文件数据库，便于课程验收时快速启动。项目同时提供 MySQL 运行配置和完整表结构脚本。
 
 MySQL 建库脚本：
 
@@ -137,5 +164,3 @@ MYSQL_USERNAME=root
 MYSQL_PASSWORD=your_password
 MYSQL_URL=jdbc:mysql://localhost:3306/retail_inventory?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
 ```
-
-说明：H2 用于默认演示和自动化测试，MySQL profile 用于展示关系型数据库部署能力，两套脚本保持相同的核心表结构和初始化数据。
