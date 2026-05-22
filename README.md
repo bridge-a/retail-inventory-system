@@ -92,3 +92,50 @@ http://localhost:8080/api/dashboard
 并使用数据库中的真实演示数据。
 
 如果后端未启动，页面会自动回退到前端演示数据，方便在无法启动后端时查看界面效果。
+
+## MySQL 运行方式（可选优化）
+
+项目默认使用 H2 文件数据库，便于课程验收时快速启动。为提升数据库可迁移性，项目同时提供 MySQL 运行配置和完整 7 张核心表结构脚本。
+
+MySQL 建库脚本：
+
+```text
+doc/sql/create-mysql-database.sql
+```
+
+完整 MySQL 表结构脚本：
+
+```text
+doc/sql/schema.sql
+backend/src/main/resources/schema-mysql.sql
+```
+
+MySQL 初始化数据脚本：
+
+```text
+doc/sql/data-mysql.sql
+backend/src/main/resources/data-mysql.sql
+```
+
+使用 MySQL 运行前，先创建数据库：
+
+```bash
+mysql -u root -p < doc/sql/create-mysql-database.sql
+```
+
+然后启动后端并启用 `mysql` profile：
+
+```bash
+cd backend
+mvn spring-boot:run -Dspring-boot.run.profiles=mysql
+```
+
+如果本地 MySQL 账号不是 `root / 123456`，可以通过环境变量覆盖：
+
+```bash
+MYSQL_USERNAME=root
+MYSQL_PASSWORD=your_password
+MYSQL_URL=jdbc:mysql://localhost:3306/retail_inventory?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+```
+
+说明：H2 用于默认演示和自动化测试，MySQL profile 用于展示关系型数据库部署能力，两套脚本保持相同的核心表结构和初始化数据。
